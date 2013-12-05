@@ -67,15 +67,6 @@ class Upload(Command):
         if ret:
             raise Abort("stty failed")
 
-        # pulse on DTR
-        try:
-            s = Serial(port, 115200)
-        except SerialException as e:
-            raise Abort(str(e))
-        s.setDTR(False)
-        sleep(0.1)
-        s.setDTR(True)
-        s.close()
 
         # Need to do a little dance for Leonardo and derivatives:
         # open then close the port at the magic baudrate (usually 1200 bps) first
@@ -84,12 +75,18 @@ class Upload(Command):
         # deal with the fact that the COM port number changes from bootloader to
         # sketch.
         if board['bootloader']['path'] == "caterina":
-            caterina_port = None
+            if platform.system() == 'Windows':
+                caterina_port = None
+            else:
+                caterina_port = port
             before = self.e.list_serial_ports()
             if port in before:
                 ser = Serial()
                 ser.port = port
-                ser.baudrate = 1200
+                ser.close()
+                ser.open()
+                ser.close()
+                ser.setBaudrate(1200)
                 ser.open()
                 ser.close()
 
@@ -102,7 +99,7 @@ class Upload(Command):
 
             elapsed = 0
             enum_delay = 0.25
-            while elapsed < 10:
+            while elapsed < 5:
                 now = self.e.list_serial_ports()
                 diff = list(set(now) - set(before))
                 if diff:
@@ -120,6 +117,16 @@ class Upload(Command):
                             "button after initiating the upload.")
 
             port = caterina_port
+        else:
+            # pulse on DTR
+            try:
+                s = Serial(port, 115200)
+            except SerialException as e:
+               raise Abort(str(e))
+            s.setDTR(False)
+            sleep(0.1)
+            s.setDTR(True)
+            s.close()
 
         # call avrdude to upload .hex
         subprocess.call([
