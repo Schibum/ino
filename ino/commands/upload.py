@@ -46,7 +46,7 @@ class Upload(Command):
         else:
             self.e.find_arduino_tool('avrdude', ['hardware', 'tools', 'avr', 'bin'])
             self.e.find_arduino_file('avrdude.conf', ['hardware', 'tools', 'avr', 'etc'])
-    
+
     def run(self, args):
         self.discover()
         port = args.serial_port or self.e.guess_serial_port()
@@ -67,14 +67,13 @@ class Upload(Command):
         if ret:
             raise Abort("stty failed")
 
-
         # Need to do a little dance for Leonardo and derivatives:
         # open then close the port at the magic baudrate (usually 1200 bps) first
         # to signal to the sketch that it should reset into bootloader. after doing
         # this wait a moment for the bootloader to enumerate. On Windows, also must
         # deal with the fact that the COM port number changes from bootloader to
         # sketch.
-        if board['bootloader']['path'] == "caterina":
+        if board['bootloader']['path'].startswith('caterina'):
             if platform.system() == 'Windows':
                 caterina_port = None
             else:
