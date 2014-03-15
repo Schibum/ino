@@ -87,11 +87,27 @@ class Upload(Command):
             caterina_port = None
             before = self.e.list_serial_ports()
             if port in before:
+                # The reset code was only working intermittently...
+                # This is very kludgy, but works to force a reset by
+                # opening and closing the port repeatedly at 1200 baud
+                # until an exception is caught                
                 ser = Serial()
                 ser.port = port
                 ser.baudrate = 1200
-                ser.open()
-                ser.close()
+
+                reset_attempts_remaining = 10
+                while (reset_attempts_remaining > 0):
+                    reset_attempts_remaining -= 1
+                    try:    
+                        ser.open()
+                        ser.close()
+                        sleep(0.3)  
+                    except:
+                        # Exception means reset is in progress
+                        attemptsRemaining = 0
+                    else:
+                        if (reset_attempts_remaining == 0):
+                            print "Could not force reset"
 
                 # Scanning for available ports seems to open the port or
                 # otherwise assert DTR, which would cancel the WDT reset if
